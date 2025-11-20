@@ -66,6 +66,21 @@ app.get('/api/me', (req, res) => {
   });
 });
 
+// Public endpoint to get the 'seller of the day' (most recently created vendeur_* user)
+app.get('/api/seller-of-day', (req, res) => {
+  // try to find a user with username pattern 'vendeur_%' newest first
+  db.get("SELECT username, full_name FROM users WHERE role = 'vendeur' AND username LIKE 'vendeur_%' ORDER BY id DESC LIMIT 1", (err, row) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    if (row) return res.json({ username: row.username, full_name: row.full_name });
+    // fallback: any vendeur
+    db.get("SELECT username, full_name FROM users WHERE role = 'vendeur' ORDER BY id DESC LIMIT 1", (err2, row2) => {
+      if (err2) return res.status(500).json({ error: 'DB error' });
+      if (!row2) return res.status(404).json({ error: 'Aucun vendeur trouvé' });
+      res.json({ username: row2.username, full_name: row2.full_name });
+    });
+  });
+});
+
 // Create invoice
 app.post('/api/invoices', authenticateToken, (req, res) => {
   const inv = req.body;

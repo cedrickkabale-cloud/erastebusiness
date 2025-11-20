@@ -19,6 +19,17 @@ export default function Login(){
     }).catch(()=>{
       // ignore if not authenticated
     })
+
+    // also fetch seller of the day to prefill/display
+    axios.get('http://localhost:4000/api/seller-of-day').then(res=>{
+      const s = res?.data
+      if(s && s.username){
+        // only prefill if username is empty
+        setUsername(prev => prev ? prev : (s.full_name || s.username))
+      }
+    }).catch(()=>{
+      // ignore if none
+    })
   }, [])
 
   const submit = async (e) => {
@@ -46,6 +57,10 @@ export default function Login(){
       <main className="login-main">
         <div className="login-card">
           <h2>Login utilisateur</h2>
+          <div style={{marginBottom:8, color:'#444'}}>
+            <strong>Vendeur du jour: </strong>{/* will be filled via API */}
+            <span style={{marginLeft:6, color:'#006'}}>{/* username shown below by input */}</span>
+          </div>
           <form className="login-box" onSubmit={submit}>
               <label htmlFor="username">Gérant</label>
               <input id="username" name="username" placeholder="Gérant" value={username} onChange={e=>setUsername(e.target.value)} />
