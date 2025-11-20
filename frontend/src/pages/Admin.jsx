@@ -10,6 +10,8 @@ export default function Admin(){
   const [filter, setFilter] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [sellerCred, setSellerCred] = useState(null)
+  const [showSellerModal, setShowSellerModal] = useState(false)
 
   async function loginAdmin(){
     // simple client-side gate: call login endpoint with admin credentials
@@ -25,14 +27,25 @@ export default function Admin(){
   }
 
   function fetchInvoices(){
-    axios.get('http://localhost:4000/api/invoices').then(r=>setInvoices(r.data))
+    axios.get('http://localhost:4000/api/invoices', { withCredentials: true }).then(r=>setInvoices(r.data))
   }
 
   async function del(id){
     if(!confirm('Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.')) return
     const token = localStorage.getItem('token')
-    await axios.delete(`http://localhost:4000/api/invoices/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+    await axios.delete(`http://localhost:4000/api/invoices/${id}`, { withCredentials: true })
     fetchInvoices()
+  }
+
+  async function fetchSellerCredentials(){
+    try{
+      const resp = await axios.get('http://localhost:4000/api/admin/seller-credentials', { withCredentials: true })
+      setSellerCred(resp.data)
+      setShowSellerModal(true)
+    }catch(err){
+      const msg = err?.response?.data?.error || 'Erreur lors de la récupération des credentials'
+      alert(msg)
+    }
   }
 
   if(!authed) return (
@@ -52,6 +65,7 @@ export default function Admin(){
         <input className="filter-input" type="date" value={toDate} onChange={e=>setToDate(e.target.value)} />
         <button className="btn btn-ghost" onClick={fetchInvoices}>Actualiser</button>
         <button className="btn btn-primary" onClick={()=>window.print()}>Imprimer la base</button>
+        <button className="btn btn-warning" onClick={fetchSellerCredentials} style={{marginLeft:12}}>Afficher mot de passe vendeur du jour (1x)</button>
       </div>
 
       <div className="card">
@@ -89,6 +103,19 @@ export default function Admin(){
           </tbody>
         </table>
       </div>
+      {showSellerModal && sellerCred && (
+        <div role="dialog" aria-modal="true" style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center'}} onClick={()=>setShowSellerModal(false)}>
+          <div style={{background:'#fff', padding:20, borderRadius:8, minWidth:340}} onClick={e=>e.stopPropagation()}>
+            <h3>Credentials vendeur du jour</h3>
+            <p><strong>Utilisateur:</strong> {sellerCred.username}</p>
+            <p><strong>Mot de passe (une seule affichage):</strong> <code style={{background:'#f4f4f4', padding:6, borderRadius:4}}>{sellerCred.password}</code></p>
+            <p style={{color:'#a00'}}>Ce mot de passe a été supprimé du fichier de secrets après lecture. Conservez-le en lieu sûr.</p>
+            <div style={{textAlign:'right'}}>
+              <button onClick={()=>{ setShowSellerModal(false); setSellerCred(null); }}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

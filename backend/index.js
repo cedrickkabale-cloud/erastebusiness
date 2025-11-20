@@ -81,6 +81,37 @@ app.get('/api/seller-of-day', (req, res) => {
   });
 });
 
+// Admin-only: return (one-time) seller credentials and remove them from .secrets
+app.get('/api/admin/seller-credentials', authenticateToken, (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: 'Accès refusé' });
+  const fs = require('fs');
+  const secretsPath = path.join(__dirname, '.secrets');
+  if (!fs.existsSync(secretsPath)) return res.status(404).json({ error: 'Aucune credential trouvée' });
+  try{
+    const raw = fs.readFileSync(secretsPath, 'utf8') || '{}';
+    const data = JSON.parse(raw || '{}');
+    const entries = Object.entries(data);
+    if (entries.length === 0) return res.status(404).json({ error: 'Aucune credential trouvée' });
+    // pick latest by createdAt if present, otherwise last key
+    let selectedKey = null;
+    let selectedVal = null;
+    let latest = 0;
+    for (const [k, v] of entries){
+      const t = v && v.createdAt ? Date.parse(v.createdAt) : 0;
+      if (t > latest){ latest = t; selectedKey = k; selectedVal = v; }
+    }
+    if (!selectedKey){ selectedKey = entries[entries.length-1][0]; selectedVal = entries[entries.length-1][1]; }
+
+    // remove selected from file (one-time)
+    delete data[selectedKey];
+    fs.writeFileSync(secretsPath, JSON.stringify(data, null, 2));
+
+    return res.json({ username: selectedKey, password: selectedVal.password });
+  }catch(e){
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 // Create invoice
 app.post('/api/invoices', authenticateToken, (req, res) => {
   const inv = req.body;
