@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+
+# Env files
+backend/.env
+frontend/.env
+
+# SQLite DB
+backend/data.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Vite/dev
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
