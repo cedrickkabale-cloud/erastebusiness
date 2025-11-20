@@ -15,9 +15,24 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// configure CORS to allow credentials from frontend (use env or default to recent dev port)
+// configure CORS to allow credentials from frontend (use env or default)
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5175';
-app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+const allowedOrigins = FRONTEND_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
+
+// dynamic origin validator: allow configured origins, and localhost/127.0.0.1 origins
+const corsOptionsDelegate = function (req, callback) {
+  const origin = req.header('Origin');
+  // allow non-browser requests (no Origin)
+  if (!origin) return callback(null, { origin: true, credentials: true });
+  // allow explicit configured origins
+  if (allowedOrigins.includes(origin)) return callback(null, { origin: origin, credentials: true });
+  // allow localhost or 127.0.0.1 with any port for dev convenience
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, { origin: origin, credentials: true });
+  // otherwise reject
+  return callback(new Error('Not allowed by CORS'), { origin: false });
+};
+
+app.use(cors(corsOptionsDelegate));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
 
