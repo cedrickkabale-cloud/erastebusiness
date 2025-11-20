@@ -26,6 +26,11 @@ Configuration d'environnement
  - Copiez `backend/.env.example` en `backend/.env` et mettez à jour `JWT_SECRET` et `FRONTEND_ORIGIN` avant de déployer en production.
  - En production, assurez-vous que `NODE_ENV=production` pour activer le flag `secure` sur le cookie de session.
 
+Note sur l'aperçu PDF (dev):
+- L'endpoint de preview A4 (`GET /api/invoices/:id/pdf/preview`) est **désactivé par défaut** pour des raisons de sécurité.
+- Pour l'activer en développement uniquement, ajoutez `ENABLE_PREVIEW=true` dans `backend/.env`.
+- En production, ne pas activer `ENABLE_PREVIEW` — utilisez l'endpoint protégé `/api/invoices/:id/pdf`.
+
 Comportement fourni:
 - Login utilisateur (utilisateurs seedés: `gerant`/`password`, `admin`/`adminpass`).
 - Formulaire de facture (ajout lignes, calcul total, enregistrement via API).

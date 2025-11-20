@@ -212,8 +212,12 @@ app.get('/api/invoices/:id/pdf', authenticateToken, (req, res) => {
   });
 });
 
-// Preview A4 (development only) - no auth, convenient for local preview
+// Preview A4 (development only) - disabled by default for safety.
+// To enable: set environment variable ENABLE_PREVIEW=true (not recommended in production).
 app.get('/api/invoices/:id/pdf/preview', (req, res) => {
+  if (process.env.ENABLE_PREVIEW !== 'true') {
+    return res.status(404).send('Preview disabled');
+  }
   const id = req.params.id;
   db.get('SELECT * FROM invoices WHERE id = ?', [id], (err, invoice) => {
     if (err || !invoice) return res.status(404).send('Facture non trouvée');
