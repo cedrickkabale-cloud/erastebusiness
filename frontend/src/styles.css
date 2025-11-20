@@ -1,0 +1,71 @@
+body{font-family: Arial, Helvetica, sans-serif; margin:0}
+.login-header{display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:#fff; border-bottom:1px solid #e6e6e6}
+.login-header .header-text{flex:1; text-align:center; font-weight:600; font-size:13px; white-space:normal; line-height:1.05; max-width:560px}
+.login-header .logo{height:64px}
+.login-header .logo.left{height:64px; width:auto}
+.login-header .logo.right{height:64px; width:auto}
+.admin-link{background:#f1f1f1; padding:6px 10px; border-radius:6px; color:#333; text-decoration:none; font-weight:600; border:1px solid #e0e0e0}
+.admin-link:hover{background:#e9f0ff}
+.login-main{display:flex; justify-content:center; align-items:center; height:74vh; background:linear-gradient(180deg,#fafafa,#ffffff)}
+.login-card{background:#fff; padding:20px 28px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); width:380px}
+.login-box{display:flex; flex-direction:column}
+.login-box label{font-size:13px; margin-top:8px; text-align:left}
+.login-box input{display:block; width:100%; margin:6px 0 12px; padding:10px; border:1px solid #dcdcdc; border-radius:6px}
+.login-box button.primary{background:#0b66c3; color:#fff; border:none; padding:10px; border-radius:6px; cursor:pointer; font-weight:600}
+.login-box .error{margin-top:12px; color:#c62828; font-size:13px}
+.login-footer{text-align:center; padding:12px; color:#666}
+
+.invoice-page{padding:16px}
+.header-row{display:flex; gap:12px}
+.header-row > div{flex:1}
+.app-container{max-width:1100px; margin:0 auto}
+
+/* Theme variables */
+:root{
+  --primary:#0b66c3;
+  --accent:#2e7d32;
+  --muted:#6b7280;
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --radius:8px;
+}
+
+/* Buttons */
+.btn{display:inline-block;padding:8px 12px;border-radius:6px;border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--primary);color:#fff;font-weight:600}
+.btn-ghost{background:transparent;border:1px solid #e6e6e6;color:var(--muted)}
+.btn-danger{background:#c62828;color:#fff}
+
+/* Form / card */
+.card{background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:0 6px 20px rgba(16,24,40,0.06)}
+.form-row{display:flex;gap:12px}
+.form-row > div{flex:1}
+
+/* Lines table */
+.lines-table{width:100%;border-collapse:collapse;margin-top:12px}
+.lines-table th, .lines-table td{padding:10px;border-bottom:1px solid #eef2f6;text-align:left}
+.lines-table thead th{background:#fbfdff;border-bottom:2px solid #e6eefc}
+.lines-table input{width:100%;padding:6px;border:1px solid #e6eefc;border-radius:4px}
+.line-actions button{margin-left:8px}
+
+.totals{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+.totals .summary{font-size:18px;font-weight:700}
+
+/* Admin table */
+.admin-controls{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.filter-input{padding:8px;border:1px solid #e6e6e6;border-radius:6px}
+
+@media (max-width:800px){
+  .form-row{flex-direction:column}
+}
+.lines-table{width:100%; border-collapse:collapse; margin-top:12px}
+.lines-table th, .lines-table td{border:1px solid #ddd; padding:6px}
+.totals{display:flex; justify-content:space-between; margin-top:12px}
+.message{margin-top:12px}
+
+/* print styles for ticket */
+@media print{
+  body *{visibility:hidden}
+  .ticket, .ticket *{visibility:visible}
+  .ticket{position: absolute; left:0; top:0}
+}
