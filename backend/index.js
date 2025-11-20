@@ -261,4 +261,21 @@ app.get('/api/invoices/:id/pdf', authenticateToken, (req, res) => {
 // Preview endpoint removed for security — use the protected `/api/invoices/:id/pdf` route instead.
 
 const PORT = process.env.PORT || 4000;
+// Serve frontend production build (if exists) so the whole app is available under backend URL
+try{
+  const fs = require('fs');
+  const distPath = path.join(__dirname, '..', 'frontend', 'dist');
+  if (fs.existsSync(distPath)){
+    app.use(express.static(distPath));
+    // serve index.html for any non-API route (SPA)
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+    console.log('Serving frontend from', distPath);
+  }
+}catch(e){
+  console.warn('Could not enable static frontend serving:', e.message);
+}
+
 app.listen(PORT, () => console.log(`Backend started on http://localhost:${PORT}`));
