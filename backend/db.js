@@ -1,5 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const dbFile = path.join(__dirname, 'data.db');
 
 const db = new sqlite3.Database(dbFile);
@@ -42,15 +44,43 @@ function init() {
       if (!err && row && row.c === 0) {
         const bcrypt = require('bcrypt');
         const saltRounds = 10;
+
+        // generate strong random passwords (hex, 32 chars)
+        const adminPassword = crypto.randomBytes(16).toString('hex');
+        const gerantPassword = crypto.randomBytes(16).toString('hex');
+
         const users = [
-          { username: 'gerant', password: 'password', role: 'vendeur', full_name: 'Gérant Eraste' },
-          { username: 'admin', password: 'adminpass', role: 'admin', full_name: 'Administrateur' }
+          { username: 'gerant', password: gerantPassword, role: 'vendeur', full_name: 'Gérant Eraste' },
+          { username: 'admin', password: adminPassword, role: 'admin', full_name: 'Administrateur' }
         ];
-        users.forEach(u => {
-          bcrypt.hash(u.password, saltRounds).then(hash => {
-            db.run(`INSERT OR IGNORE INTO users (username,password,role,full_name) VALUES (?,?,?,?)`, [u.username, hash, u.role, u.full_name]);
+
+        // hash & insert all users, then write the plaintext passwords to backend/.secrets
+        const insertPromises = users.map(u => {
+          return bcrypt.hash(u.password, saltRounds).then(hash => {
+            return new Promise((resolve, reject) => {
+              db.run(`INSERT OR IGNORE INTO users (username,password,role,full_name) VALUES (?,?,?,?)`, [u.username, hash, u.role, u.full_name], function(err) {
+                if (err) return reject(err);
+                resolve();
+              });
+            });
           });
         });
+
+        Promise.all(insertPromises)
+          .then(() => {
+            try {
+              const secretPath = path.join(__dirname, '.secrets');
+              const data = {
+                admin: { password: adminPassword, createdAt: new Date().toISOString() },
+                gerant: { password: gerantPassword, createdAt: new Date().toISOString() }
+              };
+              fs.writeFileSync(secretPath, JSON.stringify(data, null, 2), { mode: 0o600 });
+              console.log('Wrote initial credentials (JSON) to', secretPath);
+            } catch (e) {
+              console.error('Failed to write backend/.secrets with initial credentials:', e);
+            }
+          })
+          .catch(e => console.error('Failed to seed default users:', e));
       }
     });
   });

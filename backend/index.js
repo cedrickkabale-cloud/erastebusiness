@@ -15,6 +15,13 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cookieParser());
 
+// Brand configuration for PDF generation and theming - Blend Ministère + Eraste
+const BRAND_PRIMARY = process.env.BRAND_PRIMARY || '#1e40af'; // Bleu institutionnel
+const BRAND_ACCENT = process.env.BRAND_ACCENT || '#10b981'; // Vert business
+const BRAND_GOLD = process.env.BRAND_GOLD || '#f59e0b'; // Or RDC
+const BRAND_TEXT = process.env.BRAND_TEXT || '#ffffff';
+const PDF_FONT_PATH = process.env.PDF_FONT_PATH || null;
+
 // configure CORS to allow credentials from frontend (use env or default)
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5175';
 const allowedOrigins = FRONTEND_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
@@ -203,6 +210,7 @@ app.delete('/api/invoices/:id', authenticateToken, (req, res) => {
 app.get('/api/invoices/:id/pdf', authenticateToken, (req, res) => {
   const id = req.params.id;
   const format = (req.query.format || '').toLowerCase();
+  const compact = (req.query.compact === '1' || req.query.compact === 'true');
   db.get('SELECT * FROM invoices WHERE id = ?', [id], (err, invoice) => {
     if (err || !invoice) return res.status(404).json({ error: 'Facture non trouvée' });
     db.all('SELECT * FROM invoice_lines WHERE invoice_id = ? ORDER BY numero_ordre', [id], async (err2, lines) => {
@@ -216,47 +224,166 @@ app.get('/api/invoices/:id/pdf', authenticateToken, (req, res) => {
       const ticketWidthPts = Math.round(mmToPoints(72)); // exact 72 mm width
 
       let doc;
+      const fs = require('fs');
+      // load custom font if provided
+      const fontPath = (PDF_FONT_PATH && fs.existsSync(PDF_FONT_PATH)) ? PDF_FONT_PATH : null;
+
       if(format === 'a4'){
-        doc = new PDFDocument({ size: 'A4', margin: 40 });
-        // A4 header
-        try{
-          const fs = require('fs');
-          const logoPath = path.join(__dirname, 'public', 'logo-eraste.png');
-          if (fs.existsSync(logoPath)){
-            doc.image(logoPath, doc.page.width/2 - 40, 30, { width: 80 });
-            doc.moveDown(2);
-          }
-        }catch(e){}
-        doc.fontSize(16).text('Ets Eraste Business SARL', { align: 'center' });
-        doc.fontSize(11).text('Ministère / Service (multi‑ligne si nécessaire)', { align: 'center' });
+        doc = new PDFDocument({ size: 'A4', margin: 50 });
+        if (fontPath) try{ doc.font(fontPath); } catch(e){}
+        
+        // Header avec gradient simulé et logos
+        doc.rect(0, 0, doc.page.width, 100).fill(BRAND_PRIMARY);
+        doc.rect(0, 100, doc.page.width, 4).fill(BRAND_GOLD);
+        
+        // Titre principal
+        doc.fillColor(BRAND_TEXT).fontSize(22).font('Helvetica-Bold')
+           .text('RÉPUBLIQUE DÉMOCRATIQUE DU CONGO', 50, 20, { align: 'center', width: doc.page.width - 100 });
+        doc.fontSize(14).font('Helvetica')
+           .text('Ministère de l\'Entreprenariat et Développement des PME', 50, 48, { align: 'center', width: doc.page.width - 100 });
+        doc.fontSize(18).font('Helvetica-Bold')
+           .text('Ets Eraste Business SARL', 50, 72, { align: 'center', width: doc.page.width - 100 });
+        
+        doc.fillColor('black').font('Helvetica');
+        doc.y = 120;
+        
+        // Titre facture
+        doc.fontSize(20).font('Helvetica-Bold').fillColor(BRAND_PRIMARY)
+           .text('FACTURE DE VENTE', { align: 'center' });
         doc.moveDown(0.5);
+        
+        // Informations facture dans un cadre
+        const infoBoxY = doc.y;
+        doc.rect(50, infoBoxY, doc.page.width - 100, 80).stroke('#e5e7eb');
+        
+        doc.fontSize(11).fillColor('black').font('Helvetica-Bold');
+        doc.text(`N° de Facture : `, 60, infoBoxY + 15, { continued: true })
+           .font('Helvetica').fillColor(BRAND_GOLD).text(`${invoice.numero_facture}`);
+        
+        doc.font('Helvetica-Bold').fillColor('black')
+           .text(`Date d'émission : `, 60, infoBoxY + 35, { continued: true })
+           .font('Helvetica').text(`${invoice.date_emission} à ${invoice.heure_emission}`);
+        
+        doc.font('Helvetica-Bold').fillColor('black')
+           .text(`Client : `, 60, infoBoxY + 55, { continued: true })
+           .font('Helvetica').text(`${invoice.nom_client}`);
+        
+        if (req.user && req.user.full_name) {
+          doc.font('Helvetica-Bold').fillColor('black')
+             .text(`Gérant : `, doc.page.width - 250, infoBoxY + 15, { continued: true })
+             .font('Helvetica').text(`${req.user.full_name}`);
+        }
+        
+        doc.y = infoBoxY + 95;
+        doc.moveDown(1);
+        
+        // Tableau des articles
+        const tableTop = doc.y;
+        const colX = {
+          no: 60,
+          desc: 100,
+          qty: 360,
+          price: 430,
+          amount: 490
+        };
+        
+        // En-tête du tableau
+        doc.rect(50, tableTop, doc.page.width - 100, 30).fill(BRAND_PRIMARY);
+        doc.fillColor(BRAND_TEXT).fontSize(11).font('Helvetica-Bold');
+        doc.text('N°', colX.no, tableTop + 10);
+        doc.text('Désignation', colX.desc, tableTop + 10);
+        doc.text('Qté', colX.qty, tableTop + 10);
+        doc.text('Prix Unit.', colX.price, tableTop + 10);
+        doc.text('Montant', colX.amount, tableTop + 10);
+        
+        let rowY = tableTop + 35;
+        doc.fillColor('black').font('Helvetica').fontSize(10);
+        
+        lines.forEach((l, idx) => {
+          const bgColor = idx % 2 === 0 ? '#f9fafb' : '#ffffff';
+          doc.rect(50, rowY - 5, doc.page.width - 100, 25).fill(bgColor).stroke('#e5e7eb');
+          
+          doc.fillColor('black');
+          doc.text(`${l.numero_ordre}`, colX.no, rowY, { width: 30 });
+          doc.text(`${l.designation}`, colX.desc, rowY, { width: 250 });
+          doc.text(`${l.quantite}`, colX.qty, rowY, { width: 60, align: 'center' });
+          doc.text(`${Number(l.prix_unitaire).toFixed(2)}`, colX.price, rowY, { width: 50, align: 'right' });
+          doc.text(`${Number(l.montant).toFixed(2)}`, colX.amount, rowY, { width: 60, align: 'right' });
+          
+          rowY += 25;
+        });
+        
+        // Total avec fond doré
+        doc.rect(50, rowY, doc.page.width - 100, 40).fill(BRAND_GOLD);
+        doc.fillColor(BRAND_TEXT).fontSize(16).font('Helvetica-Bold');
+        doc.text('TOTAL GÉNÉRAL :', 60, rowY + 12, { continued: true })
+           .text(`${Number(invoice.total).toFixed(2)} ${invoice.devise}`, { align: 'right' });
+        
+        doc.y = rowY + 55;
+        doc.fillColor('black').font('Helvetica').fontSize(9);
+        
+        // Footer
+        doc.moveDown(2);
+        doc.fontSize(10).fillColor('#64748b')
+           .text('━'.repeat(60), { align: 'center' });
+        doc.fontSize(9).text("La marchandise vendue n'est ni reprise ni échangée", { align: 'center' });
+        doc.text('Merci de votre confiance - Eraste Business SARL', { align: 'center' });
+        doc.fontSize(8).fillColor('#9ca3af')
+           .text('Marché MITENDI - RDC', { align: 'center' });
+        
       }else{
-        doc = new PDFDocument({ size: [ticketWidthPts, 400 + lines.length * 16], margin: 8 });
-        doc.fontSize(12).text('Ets Eraste Business SARL', { align: 'center' });
-        doc.fontSize(9).text('Marché MITENDI', { align: 'center' });
+        // Format ticket - amélioration de la mise en page
+        const ticketHeight = Math.max(280, 320 + lines.length * 18);
+        doc = new PDFDocument({ size: [ticketWidthPts, ticketHeight], margin: 10 });
+        if (fontPath) try{ doc.font(fontPath); } catch(e){}
+        
+        // Header avec bordure dorée
+        doc.rect(0, 0, doc.page.width, 55).fill(BRAND_PRIMARY);
+        doc.rect(0, 55, doc.page.width, 2).fill(BRAND_GOLD);
+        
+        doc.fillColor(BRAND_TEXT).fontSize(12).font('Helvetica-Bold')
+           .text('Eraste Business SARL', 0, 12, { align: 'center', width: doc.page.width });
+        doc.fontSize(8).font('Helvetica')
+           .text('Marché MITENDI', 0, 28, { align: 'center', width: doc.page.width });
+        doc.fontSize(7).text('RDC - Service PME', 0, 40, { align: 'center', width: doc.page.width });
+        
+        doc.y = 65;
+        doc.fillColor('black').font('Helvetica').fontSize(8);
+        
+        // Info facture
+        doc.font('Helvetica-Bold').text(`Facture N° ${invoice.numero_facture}`, { align: 'center' });
+        doc.font('Helvetica').fontSize(7);
+        doc.text(`${invoice.date_emission} - ${invoice.heure_emission}`, { align: 'center' });
+        doc.text(`Client: ${invoice.nom_client}`, { align: 'center' });
+        if (req.user && req.user.full_name) {
+          doc.text(`Gérant: ${req.user.full_name}`, { align: 'center' });
+        }
+        
         doc.moveDown(0.5);
+        doc.text('─'.repeat(32), { align: 'center' });
+        doc.moveDown(0.3);
+        
+        // Articles
+        doc.fontSize(8);
+        lines.forEach(l => {
+          doc.font('Helvetica-Bold').text(`${l.numero_ordre}. ${l.designation}`);
+          doc.font('Helvetica')
+             .text(`   ${l.quantite} x ${Number(l.prix_unitaire).toFixed(2)} = ${Number(l.montant).toFixed(2)} ${invoice.devise}`, { align: 'right' });
+        });
+        
+        doc.moveDown(0.3);
+        doc.text('─'.repeat(32), { align: 'center' });
+        doc.moveDown(0.3);
+        
+        // Total
+        doc.fontSize(11).font('Helvetica-Bold').fillColor(BRAND_GOLD);
+        doc.text(`TOTAL: ${Number(invoice.total).toFixed(2)} ${invoice.devise}`, { align: 'center' });
+        
+        doc.fillColor('black').font('Helvetica').fontSize(7);
+        doc.moveDown(0.5);
+        doc.text("Vente sans reprise ni échange", { align: 'center' });
+        doc.text('Merci et à bientôt!', { align: 'center' });
       }
-
-      doc.pipe(res);
-
-      // common header info
-      doc.fontSize(9);
-      doc.text(`Facture N° : ${invoice.numero_facture}`);
-      doc.text(`Date : ${invoice.date_emission}  Heure : ${invoice.heure_emission}`);
-      doc.text(`Client : ${invoice.nom_client}`);
-      if (req.user && req.user.full_name) doc.text(`Gérant : ${req.user.full_name}`);
-      doc.moveDown(0.5);
-
-      doc.text('--------------------------------');
-      lines.forEach(l => {
-        doc.text(`${l.numero_ordre}. ${l.designation}`);
-        doc.text(`${l.quantite} x ${Number(l.prix_unitaire).toFixed(2)}  = ${Number(l.montant).toFixed(2)}`, { align: 'right' });
-      });
-      doc.text('--------------------------------');
-      doc.fontSize(11).text(`Total : ${Number(invoice.total).toFixed(2)} ${invoice.devise}`, { align: 'right' });
-      doc.moveDown(0.5);
-      doc.fontSize(8).text("La marchandise vendue n'est ni reprise ni échangée", { align: 'center' });
-      doc.text('Merci et à la prochaine', { align: 'center' });
 
       // QR code as dataURL
       const qrText = JSON.stringify({ id: invoice.id, numero: invoice.numero_facture, total: invoice.total });
@@ -264,10 +391,26 @@ app.get('/api/invoices/:id/pdf', authenticateToken, (req, res) => {
         const dataUrl = await QRCode.toDataURL(qrText);
         const base64 = dataUrl.split(',')[1];
         const img = Buffer.from(base64, 'base64');
-        const imgWidth = Math.min(120, (doc.page.width - (doc.page.margins ? doc.page.margins.left + doc.page.margins.right : 16)) - 16);
-        const imgX = (doc.page.width - imgWidth) / 2;
-        doc.image(img, imgX, doc.y + 8, { width: imgWidth });
-      }catch(e){ }
+        
+        if(format === 'a4'){
+          // QR Code pour A4 - en bas à droite
+          const qrSize = 80;
+          doc.image(img, doc.page.width - qrSize - 60, doc.page.height - qrSize - 60, { width: qrSize });
+          doc.fontSize(7).fillColor('#9ca3af')
+             .text('Scannez pour vérifier', doc.page.width - 140, doc.page.height - 50, { width: 80, align: 'center' });
+        }else{
+          // QR Code pour ticket - centré en bas
+          const qrSize = Math.min(60, doc.page.width - 20);
+          const imgX = (doc.page.width - qrSize) / 2;
+          doc.moveDown(0.5);
+          doc.image(img, imgX, doc.y, { width: qrSize });
+          doc.y += qrSize + 5;
+          doc.fontSize(6).fillColor('#9ca3af')
+             .text('Code de vérification', { align: 'center' });
+        }
+      }catch(e){ console.error('QR generation error:', e); }
+      
+      doc.pipe(res);
       doc.end();
     });
   });

@@ -6,6 +6,7 @@ import QRCode from 'react-qr-code'
 export default function TicketView(){
   const { id } = useParams()
   const [inv, setInv] = useState(null)
+  const [compact, setCompact] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -23,45 +24,46 @@ export default function TicketView(){
   if(!inv) return <div>Chargement...</div>
 
   return (
-    <div className="ticket" style={{width:'220px', margin:'0 auto', fontFamily:'monospace'}}>
-      <div style={{textAlign:'center'}}>
-        <div style={{fontWeight:'bold'}}>Ets Eraste Business SARL</div>
-        <div>Marché MITENDI</div>
+    <div className={(compact ? 'ticket-compact ' : '') + 'ticket'}>
+      <div className="ticket-header center">
+        <div className="ticket-title">Ets Eraste Business SARL</div>
+        <div className="ticket-sub">Marché MITENDI</div>
       </div>
       <hr />
-      <div>
+      <div className="ticket-meta">
         <div>Facture N° : {inv.numero_facture}</div>
         <div>Date : {inv.date_emission}</div>
         <div>Heure : {inv.heure_emission}</div>
         <div>Client : {inv.nom_client}</div>
       </div>
       <hr />
-      <div>
+      <div className="ticket-lines">
         {inv.lines.map(l=> (
-          <div key={l.id} style={{display:'flex', justifyContent:'space-between'}}>
-            <div>{l.numero_ordre}. {l.designation}</div>
-            <div>{l.quantite} x {Number(l.prix_unitaire).toFixed(2)}</div>
-            <div>{Number(l.montant).toFixed(2)}</div>
+          <div key={l.id} className="line-row">
+            <div className="line-desc">{l.numero_ordre}. {l.designation}</div>
+            <div className="line-q">{l.quantite} x {Number(l.prix_unitaire).toFixed(2)}</div>
+            <div className="line-amt">{Number(l.montant).toFixed(2)}</div>
           </div>
         ))}
       </div>
       <hr />
-      <div style={{textAlign:'right', fontWeight:'bold'}}>Total : {Number(inv.total).toFixed(2)} {inv.devise}</div>
+      <div className="ticket-total">Total : {Number(inv.total).toFixed(2)} {inv.devise}</div>
       <hr />
-      <div style={{textAlign:'center', fontSize:'12px'}}>
+      <div className="ticket-note center small">
         <div>La marchandise vendue n'est ni reprise ni échangée</div>
         <div>Merci et à la prochaine</div>
-        <div>Payé cash</div>
+        <div style={{marginTop:8}}><span className="badge badge-gold">✓ Payé cash</span></div>
       </div>
-      <div style={{textAlign:'center', marginTop:12}}>
+      <div className="center mt-12">
         <QRCode value={JSON.stringify({id:inv.id, numero:inv.numero_facture, total:inv.total})} size={80} />
       </div>
-      <div style={{textAlign:'center', marginTop:8}}>
-        <button onClick={()=>window.print()}>Imprimer la facture</button>
-        <button onClick={async ()=>{
+      <div className="center mt-8">
+        <button className="btn btn-ghost" onClick={()=>window.print()}>Imprimer la facture</button>
+        <button className="btn btn-ghost ml-8" onClick={()=>setCompact(c=>!c)}>{compact ? 'Mode normal' : 'Mode compact'}</button>
+        <button className="btn btn-ghost ml-8" onClick={async ()=>{
           setLoadingPdf(true)
           try{
-            const resp = await fetch(`http://localhost:4000/api/invoices/${id}/pdf`, { credentials: 'include' });
+            const resp = await fetch(`http://localhost:4000/api/invoices/${id}/pdf${compact? '?compact=1':''}`, { credentials: 'include' });
             if(!resp.ok){
               const err = await resp.json().catch(()=>({error:'Erreur'}));
               setLoadingPdf(false)
@@ -76,7 +78,7 @@ export default function TicketView(){
           }catch(e){
             alert('Erreur lors du téléchargement du PDF')
           }finally{ setLoadingPdf(false) }
-        }} style={{marginLeft:8}}>{loadingPdf ? 'Chargement...' : 'Afficher PDF (modal)'}</button>
+        }}>{loadingPdf ? 'Chargement...' : 'Afficher PDF (modal)'}</button>
         <button onClick={async ()=>{
           // fallback: download file in new tab
           try{
@@ -87,26 +89,26 @@ export default function TicketView(){
             window.open(url, '_blank');
             setTimeout(()=> URL.revokeObjectURL(url), 60_000);
           }catch(e){ alert('Erreur lors du téléchargement du PDF') }
-        }} style={{marginLeft:8}}>Télécharger PDF</button>
+        }} className="ml-8">Télécharger PDF</button>
       </div>
 
       {showModal && pdfUrl && (
-        <div role="dialog" aria-modal="true" style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999}} onClick={()=>{ setShowModal(false); }}>
-          <div style={{width:'80%', height:'80%', background:'#fff', borderRadius:8, padding:12, boxShadow:'0 6px 24px rgba(0,0,0,0.2)', display:'flex', flexDirection:'column'}} onClick={(e)=>e.stopPropagation()}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+        <div role="dialog" aria-modal="true" className="modal-backdrop" onClick={()=>{ setShowModal(false); }}>
+          <div className="modal-content" onClick={(e)=>e.stopPropagation()}>
+            <div className="modal-header">
               <div style={{fontWeight:600}}>Aperçu PDF - {inv.numero_facture}</div>
               <div>
-                <button onClick={()=>{
+                <button className="btn btn-ghost mr-8" onClick={()=>{
                   try{
                     if(iframeRef.current && iframeRef.current.contentWindow) iframeRef.current.contentWindow.print();
                     else alert('Impression non disponible');
                   }catch(e){ alert('Impossible de lancer l\'impression depuis l\'iframe: ' + e.message) }
-                }} style={{marginRight:8}}>Imprimer le PDF</button>
-                <button onClick={()=>{ setShowModal(false); }}>Fermer</button>
+                }} >Imprimer le PDF</button>
+                <button className="btn btn-ghost" onClick={()=>{ setShowModal(false); }}>Fermer</button>
               </div>
             </div>
-            <div style={{flex:1}}>
-              <iframe ref={iframeRef} title="facture-pdf" src={pdfUrl} style={{width:'100%', height:'100%', border:'1px solid #ddd'}} />
+            <div className="iframe-full">
+              <iframe ref={iframeRef} title="facture-pdf" src={pdfUrl} className="iframe-full" />
             </div>
           </div>
         </div>

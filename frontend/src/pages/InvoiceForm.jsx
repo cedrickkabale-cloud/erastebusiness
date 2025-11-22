@@ -70,83 +70,124 @@ export default function InvoiceForm(){
 
   return (
     <div className="invoice-page app-container">
-      <h1>Formulaire du reçu</h1>
-      <div className="card">
-        <div className="form-row">
-          <div>
-            <label>Nom du client</label>
-            <input value={nomClient} onChange={e=>setNomClient(e.target.value)} />
-          </div>
-          <div>
-            <label>Date</label>
-            <input type="date" value={dateEmission} onChange={e=>setDateEmission(e.target.value)} />
-            <label>Heure</label>
-            <input value={heureEmission} onChange={e=>setHeureEmission(e.target.value)} />
-          </div>
-          <div>
-            <label>Vendeur</label>
-            <input value={user?.full_name || ''} readOnly />
-            <label>Numéro facture</label>
-            <input value={invoiceNumero} readOnly />
-          </div>
+      <header className="invoice-header">
+        <img src="/logo-ministere.svg" alt="Ministère" className="logo left" />
+        <h1>📄 Création de Facture</h1>
+        <img src="/logo-eraste.svg" alt="Eraste Business" className="logo right" />
+      </header>
+      
+      <div className="invoice-info-bar">
+        <div className="info-item">
+          <span className="info-label">👤 Vendeur</span>
+          <span className="info-value">{user?.full_name || '—'}</span>
         </div>
-
-        <div style={{marginTop:12}} className="form-row">
-          <div>
-            <label>Devise</label>
-            <select value={devise} onChange={e=>setDevise(e.target.value)}>
-              <option value="CDF">CDF</option>
-              <option value="USD">USD</option>
-            </select>
-          </div>
-          <div>
-            <label>Taux (1 USD = X CDF)</label>
-            <input type="number" value={taux} onChange={e=>setTaux(Number(e.target.value))} />
-          </div>
-          <div style={{display:'flex', alignItems:'end', gap:8}}>
-            <button className="btn btn-ghost" onClick={addLine}>+ Ajouter ligne</button>
-            <button className="btn btn-primary" onClick={validate}>Valider la facture</button>
-          </div>
+        <div className="info-item">
+          <span className="info-label">📋 Facture N°</span>
+          <span className="info-value badge badge-info">{invoiceNumero}</span>
         </div>
-
-        <table className="lines-table">
-          <thead>
-            <tr>
-              <th>N°</th>
-              <th>Désignation</th>
-              <th style={{width:120}}>Quantité</th>
-              <th style={{width:140}}>Prix unitaire</th>
-              <th style={{width:120}}>Montant</th>
-              <th style={{width:120}}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((l, i)=> (
-              <tr key={l.id}>
-                <td>{i+1}</td>
-                <td><input value={l.designation} onChange={e=>updateLine(i,'designation', e.target.value)} /></td>
-                <td><input type="number" value={l.quantite} onChange={e=>updateLine(i,'quantite', Number(e.target.value))} /></td>
-                <td><input type="number" value={l.prix_unitaire} onChange={e=>updateLine(i,'prix_unitaire', Number(e.target.value))} /></td>
-                <td>{Number(l.montant).toFixed(2)}</td>
-                <td className="line-actions">
-                  <button className="btn btn-ghost" onClick={()=>removeLine(i)}>Suppr</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="totals">
-          <div className="summary">Total: {total.toFixed(2)} {devise}
-            {devise === 'USD' ? <div style={{fontSize:12,color:'var(--muted)'}}>≈ {(total * taux).toFixed(2)} CDF</div> : <div style={{fontSize:12,color:'var(--muted)'}}>≈ {(total / taux).toFixed(2)} USD</div>}
-          </div>
-          <div>
-            <button className="btn btn-ghost" onClick={()=>navigate('/')}>Annuler</button>
-            <button className="btn btn-primary" style={{marginLeft:8}} onClick={validate}>Enregistrer & Imprimer</button>
-          </div>
+        <div className="info-item">
+          <span className="info-label">📅 Date</span>
+          <span className="info-value">{new Date(dateEmission).toLocaleDateString('fr-FR')} • {heureEmission}</span>
         </div>
       </div>
-      {message && <div style={{marginTop:12}} className="card">{message}</div>}
+
+      <div className="card">
+        <div className="form-section">
+          <h3 className="section-title">📝 Informations Client</h3>
+          <div className="form-row">
+            <div className="form-group-full">
+              <label>👤 Nom complet du client</label>
+              <input className="input input-premium" placeholder="Entrez le nom du client..." value={nomClient} onChange={e=>setNomClient(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="form-section">
+          <h3 className="section-title">⚙️ Configuration de la facture</h3>
+          <div className="form-row">
+            <div>
+              <label>📅 Date d'émission</label>
+              <input className="input" type="date" value={dateEmission} onChange={e=>setDateEmission(e.target.value)} />
+            </div>
+            <div>
+              <label>🕐 Heure d'émission</label>
+              <input className="input" value={heureEmission} onChange={e=>setHeureEmission(e.target.value)} />
+            </div>
+            <div>
+              <label>💰 Devise</label>
+              <select className="input" value={devise} onChange={e=>setDevise(e.target.value)}>
+                <option value="CDF">🇨🇩 CDF - Franc Congolais</option>
+                <option value="USD">🇺🇸 USD - Dollar Américain</option>
+              </select>
+            </div>
+            <div>
+              <label>📊 Taux de change (1 USD)</label>
+              <input className="input" type="number" placeholder="2000" value={taux} onChange={e=>setTaux(Number(e.target.value))} />
+            </div>
+          </div>
+        </div>
+
+        <div className="form-section">
+          <div className="section-header">
+            <h3 className="section-title">🛒 Articles et Services</h3>
+            <button className="btn btn-success" onClick={addLine}>➕ Nouvelle ligne</button>
+          </div>
+
+          <div className="lines-container">
+            <table className="lines-table-modern">
+              <thead>
+                <tr>
+                  <th className="col-no">N°</th>
+                  <th className="col-desc">📦 Désignation</th>
+                  <th className="col-qty">🔢 Qté</th>
+                  <th className="col-price">💵 Prix unitaire</th>
+                  <th className="col-amt">💰 Montant</th>
+                  <th className="col-actions">⚡</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((l, i)=> (
+                  <tr key={l.id} className="line-row-modern">
+                    <td className="line-number">{i+1}</td>
+                    <td><input className="input input-table" placeholder="Description de l'article..." value={l.designation} onChange={e=>updateLine(i,'designation', e.target.value)} /></td>
+                    <td><input className="input input-table input-center" type="number" min="1" value={l.quantite} onChange={e=>updateLine(i,'quantite', Number(e.target.value))} /></td>
+                    <td><input className="input input-table input-right" type="number" min="0" step="0.01" value={l.prix_unitaire} onChange={e=>updateLine(i,'prix_unitaire', Number(e.target.value))} /></td>
+                    <td className="amount-cell">{Number(l.montant).toFixed(2)} {devise}</td>
+                    <td className="line-actions">
+                      <button className="btn-icon btn-danger-icon" onClick={()=>removeLine(i)} title="Supprimer">🗑️</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="invoice-totals">
+          <div className="totals-grid">
+            <div className="total-row">
+              <span className="total-label">Sous-total</span>
+              <span className="total-value">{total.toFixed(2)} {devise}</span>
+            </div>
+            <div className="total-row conversion">
+              <span className="total-label">💱 Équivalence</span>
+              <span className="total-value-small">
+                {devise === 'USD' ? `≈ ${(total * taux).toFixed(2)} CDF` : `≈ ${(total / taux).toFixed(2)} USD`}
+              </span>
+            </div>
+            <div className="total-row grand-total">
+              <span className="total-label">💎 TOTAL GÉNÉRAL</span>
+              <span className="total-value-grand">{total.toFixed(2)} {devise}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-actions-footer">
+          <button className="btn btn-ghost btn-large" onClick={()=>navigate('/')}>❌ Annuler</button>
+          <button className="btn btn-gold btn-large" onClick={validate}>✅ Enregistrer & Imprimer la facture</button>
+        </div>
+      </div>
+      {message && <div className="message-box">{message}</div>}
     </div>
   )
 }

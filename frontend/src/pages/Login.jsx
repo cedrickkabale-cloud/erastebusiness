@@ -47,31 +47,31 @@ export default function Login(){
   return (
     <div className="login-page">
       <header className="login-header">
-        <img src="/logo-ministere.svg" alt="min" className="logo left" />
-        <div className="header-text">Ministère de l’Entreprenariat et Développement des Petites et Moyennes Entreprises de la RDC</div>
-        <div style={{display:'flex', alignItems:'center', gap:12}}>
-          <Link to="/admin" className="admin-link">Admin</Link>
-          <img src="/logo-eraste.svg" alt="eraste" className="logo right" />
-        </div>
+        <img src="/logo-ministere.svg" alt="Ministère" className="logo left" />
+        <div className="header-text">Ministère de l'Entreprenariat et Développement des Petites et Moyennes Entreprises de la RDC</div>
+        <img src="/logo-eraste.svg" alt="Eraste Business" className="logo right" />
       </header>
       <main className="login-main">
         <div className="login-card">
-          <h2>Login utilisateur</h2>
-          <div style={{marginBottom:8, color:'#444'}}>
-            <strong>Vendeur du jour: </strong>{/* will be filled via API */}
-            <span style={{marginLeft:6, color:'#006'}}>{/* username shown below by input */}</span>
+          <h2>🔐 Connexion Sécurisée</h2>
+          <div className="mb-8">
+            <strong style={{color: 'var(--primary-900)'}}>Vendeur du jour: </strong>
+            <span className="ml-6" style={{color: 'var(--accent)', fontWeight: '700'}}>{username || '—'}</span>
           </div>
           <form className="login-box" onSubmit={submit}>
-              <label htmlFor="username">Gérant</label>
-              <input id="username" name="username" placeholder="Gérant" value={username} onChange={e=>setUsername(e.target.value)} />
-            <label htmlFor="password">Mot de passe</label>
-            <input id="password" name="password" placeholder="Mot de passe" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
-            <button className="primary" type="submit">Se connecter</button>
-            {error && <div className="error">{error}</div>}
+              <label htmlFor="username">👤 Nom d'utilisateur</label>
+              <input id="username" name="username" placeholder="Entrez votre nom" value={username} onChange={e=>setUsername(e.target.value)} />
+            <label htmlFor="password">🔑 Mot de passe</label>
+            <input id="password" name="password" placeholder="Entrez votre mot de passe" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+            <button className="btn btn-gold" type="submit">✨ Se connecter</button>
+            {error && <div className="error">⚠️ {error}</div>}
           </form>
         </div>
       </main>
-      <footer className="login-footer">© Eraste Business 2025</footer>
+      <footer className="login-footer">
+        <div>© Eraste Business SARL - 2025 | Tous droits réservés</div>
+        <Link to="/admin" className="admin-link" style={{display: 'inline-block', marginTop: '12px'}}>🔧 Administration</Link>
+      </footer>
     </div>
   )
 }
