@@ -1,0 +1,6 @@
+backend
+api/firebase-key.json
+node_modules
+.git
+*.log
+.env
