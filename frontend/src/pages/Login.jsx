@@ -11,7 +11,7 @@ export default function Login(){
 
   useEffect(()=>{
     // try to get current user from cookie/session and prefill Gérant
-    axios.get('http://localhost:4000/api/me', { withCredentials: true }).then(res=>{
+    axios.get('/api/me', { withCredentials: true }).then(res=>{
       const u = res?.data?.user
       if(u){
         setUsername(u.full_name || u.username || '')
@@ -21,7 +21,7 @@ export default function Login(){
     })
 
     // also fetch seller of the day to prefill/display
-    axios.get('http://localhost:4000/api/seller-of-day').then(res=>{
+    axios.get('/api/seller-of-day').then(res=>{
       const s = res?.data
       if(s && s.username){
         // only prefill if username is empty
@@ -35,7 +35,7 @@ export default function Login(){
   const submit = async (e) => {
     e.preventDefault()
     try{
-      const res = await axios.post('http://localhost:4000/api/login', { username, password }, { withCredentials: true })
+      const res = await axios.post('/api/login', { username, password }, { withCredentials: true })
       // server sets httpOnly cookie; store minimal user info
       localStorage.setItem('user', JSON.stringify(res.data.user))
       navigate('/invoice')

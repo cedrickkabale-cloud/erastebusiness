@@ -57,7 +57,7 @@ export default function InvoiceForm(){
       lines: lines.map(l=>({ numero_ordre: l.numero_ordre, designation: l.designation, quantite: l.quantite, prix_unitaire: l.prix_unitaire, montant: l.montant }))
     }
     try{
-      const res = await axios.post('http://localhost:4000/api/invoices', payload)
+      const res = await axios.post('/api/invoices', payload)
       // server will set cookie; but with axios defaults, credentials are sent
       // note: we keep using axios.defaults.withCredentials = true
       setMessage('Facture enregistrée avec succès.')

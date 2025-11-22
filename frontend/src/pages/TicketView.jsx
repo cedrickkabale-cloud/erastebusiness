@@ -12,7 +12,7 @@ export default function TicketView(){
   const [showModal, setShowModal] = useState(false)
   const iframeRef = useRef(null)
   useEffect(()=>{
-    axios.get(`http://localhost:4000/api/invoices/${id}`).then(r=>setInv(r.data)).catch(()=>{})
+    axios.get(`/api/invoices/${id}`).then(r=>setInv(r.data)).catch(()=>{})
   },[id])
 
   useEffect(()=>{
@@ -63,7 +63,7 @@ export default function TicketView(){
         <button className="btn btn-ghost ml-8" onClick={async ()=>{
           setLoadingPdf(true)
           try{
-            const resp = await fetch(`http://localhost:4000/api/invoices/${id}/pdf${compact? '?compact=1':''}`, { credentials: 'include' });
+            const resp = await fetch(`/api/invoices/${id}/pdf${compact? '?compact=1':''}`, { credentials: 'include' });
             if(!resp.ok){
               const err = await resp.json().catch(()=>({error:'Erreur'}));
               setLoadingPdf(false)
@@ -82,7 +82,7 @@ export default function TicketView(){
         <button onClick={async ()=>{
           // fallback: download file in new tab
           try{
-            const resp = await fetch(`http://localhost:4000/api/invoices/${id}/pdf`, { credentials: 'include' });
+            const resp = await fetch(`/api/invoices/${id}/pdf`, { credentials: 'include' });
             if(!resp.ok) return alert('Erreur lors de la génération du PDF')
             const blob = await resp.blob();
             const url = URL.createObjectURL(blob);

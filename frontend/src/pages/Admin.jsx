@@ -18,7 +18,7 @@ export default function Admin(){
   async function loginAdmin(){
     // simple client-side gate: call login endpoint with admin credentials
     try{
-      const res = await axios.post('http://localhost:4000/api/login', { username: 'admin', password }, { withCredentials: true })
+      const res = await axios.post('/api/login', { username: 'admin', password }, { withCredentials: true })
       // cookie httpOnly is set by server; store user minimal info
       localStorage.setItem('user', JSON.stringify(res.data.user))
       setAuthed(true)
@@ -29,19 +29,19 @@ export default function Admin(){
   }
 
   function fetchInvoices(){
-    axios.get('http://localhost:4000/api/invoices', { withCredentials: true }).then(r=>setInvoices(r.data))
+    axios.get('/api/invoices', { withCredentials: true }).then(r=>setInvoices(r.data))
   }
 
   async function del(id){
     if(!confirm('Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.')) return
     const token = localStorage.getItem('token')
-    await axios.delete(`http://localhost:4000/api/invoices/${id}`, { withCredentials: true })
+    await axios.delete(`/api/invoices/${id}`, { withCredentials: true })
     fetchInvoices()
   }
 
   async function fetchSellerCredentials(){
     try{
-      const resp = await axios.get('http://localhost:4000/api/admin/seller-credentials', { withCredentials: true })
+      const resp = await axios.get('/api/admin/seller-credentials', { withCredentials: true })
       setSellerCred(resp.data)
       setShowSellerModal(true)
     }catch(err){
