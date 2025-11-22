@@ -163,3 +163,11 @@ app.get('/api/admin/seller-credentials', authMiddleware, async (req, res) => {
 });
 
 module.exports = app;
+
+// For local testing
+if (require.main === module) {
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Serveur Firebase API démarré sur http://localhost:${PORT}`);
+  });
+}
